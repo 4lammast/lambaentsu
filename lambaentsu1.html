@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html><head>
+<title>lambaentsü</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Comic+Relief:wght@400;700&display=swap" rel="stylesheet">
+<style>
+@keyframes keerlemine { from {transform: rotate(0deg)} to {
+	transform: rotate(360deg)}}
+img:active {animation-name: keerlemine}
+@keyframes katekoverdus { 0%, 100% {margin-bottom: 0px;} 50% {margin-bottom: 100px;}}
+h2:active {animation-name: katekoverdus; animation-iteration-count: infinite;}
+@keyframes nt { from {opacity: 0;} to {opacity: 1}}
+input {all: unset; border: solid 2px black; padding: 5px; margin: 20px; margin-bottom: 0px;}
+p, h2 { margin: 20px}
+h2 {margin-bottom: 0px; margin-top: 0px;
+animation-name: nt; animation-duration: 0.5s;
+animation-iteration-count: 1;}
+img {margin-top: 5px; margin-left: 5px; opacity: 1; animation-name: none; animation-duration: 1s;
+animation-iteration-count: infinite; }
+a, a:link, a:visited {margin: 20px; color: blue}
+* {font-family: "Comic Relief", system-ui;}
+</style>
+</head>
+
+<body>
+<a href="#avaleht"><img src="entsulogo.svg" width="120"><br></a>
+<p id="otsip">OTSI: <input id="OTSING"> <a id="uus">LOO ARTIKKEL!</a>
+<p id="TIITLID"></p>
+</p>
+<p id="TAHTIS">TÄHELEPANU! KÕIK SIIN OLEV INFO EI OLE TÕSI!</p>
+<h2 id="TIITEL"></h2>
+<a id="alusta">Muuda</a>
+<p id="SISU"></p>
+<p id="muutmine" style="display: none;">
+Uus sisu:<br>
+<textarea id="muuda"></textarea><br><a id="okei">Okei</a>  <a id="stopp">Tühista</a> 
+<a id="uustiitel">Uus tiitel</a></p>
+
+<script type="module">
+
+
+import { createClient } from "https://esm.sh/@supabase/supabase-js"
+
+function oota(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+var s = createClient("https://iqrrffhjxakqvlshonbr.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlxcnJmZmhqeGFrcXZsc2hvbmJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzNTAxMzgsImV4cCI6MjA3NTkyNjEzOH0.kqOJ9Ui08Z8dXLGSE3dKXRl436_OKkqli3hbTrQAufA");
+
+if (!location.hash) {location.hash = "#avaleht"}
+
+const leht = async () => {
+if (location.hash == "#avaleht") {document.querySelector("#TAHTIS").style.display = "none"; alusta.style.display = "none";}
+else {document.querySelector("#TAHTIS").style.display = "block"; alusta.style.display = "inline"}
+muutmine.style.display = "none";
+SISU.style.display = "block";
+
+const { data, error } = await s.from("lambaentsu").select("*").eq("tiitel", location.hash.slice(1)).single();
+console.log(data);
+
+if (error) { if (error.code == "PGRST116") {document.querySelector("#TIITEL").innerHTML = "EI LEITUD"}
+else {alert("Viga!"); console.log(error) }}
+
+else if (data) { 
+document.querySelector("#TIITEL").innerText = data["tiitel"];
+SISU.innerText = data["sisu"]
+muuda.value = data["sisu"]}}
+/* Siit läheb edasi */
+
+var otsing = document.querySelector("#OTSING");
+var tiitlid = document.querySelector("#TIITLID");
+var uus = document.querySelector("#uus");
+var alusta = document.querySelector("#alusta");
+var muuda = document.querySelector("#muuda");
+var muutmine = document.querySelector("#muutmine");
+var okei = document.querySelector("#okei");
+var stopp = document.querySelector("#stopp");
+var SISU = document.querySelector("#SISU");
+var uustiitel = document.querySelector("#uustiitel")
+
+otsing.onfocus = async () => {otsi();}
+otsing.oninput = async () => {otsi();}
+
+uus.onclick = async () => {const uus_tiitel = prompt("Uue artikkli nimi:"); if (uus_tiitel && uus_tiitel != "")
+{const info = await s.from("lambaentsu").insert({"tiitel": uus_tiitel, "sisu": "määä määä määä"}); if (info.error) {alert("Viga!\n"+info.error.message)} else {
+location.hash = "#"+uus_tiitel;}}}
+
+alusta.onclick = async () => {muutmine.style.display = "block"; SISU.style.display = "none";}
+
+stopp.onclick = async () => {if (confirm("Kas tahad kindlasti lõpetada muutmise lõpetada? Sinu muudatust ei salvestata!")) {leht()}}
+
+okei.onclick = async () => { try {const {data, error} = await s.from('lambaentsu')
+  .select('id')
+  .eq('tiitel', location.hash.slice(1)).
+  single(); if (error) {throw error;}
+  const { error2 } = await s
+  .from('lambaentsu')
+  .update({ sisu: muuda.value })
+  .eq('id', data["id"]); if (error2) {throw error2;} else {leht()}} catch (error) {alert("VIGA!\n"+error)}}
+
+uustiitel.onclick = async () => { try {const uus_tiitel = prompt("Uus tiitel:"); if(uus_tiitel && uus_tiitel != "") {const {data, error} = await s.from('lambaentsu')
+  .select('id')
+  .eq('tiitel', location.hash.slice(1)).
+  single(); if (error) {throw error;}
+  const { error2 } = await s
+  .from('lambaentsu')
+  .update({ tiitel: uus_tiitel })
+  .eq('id', data["id"]); if (error2) {throw error2;} else {location.hash = uus_tiitel; leht()}}} catch (error) {alert("VIGA!\n"+error)}}
+
+const otsi = async () => {
+
+const { data, error } = await s.from("lambaentsu").select("*").ilike("tiitel", otsing.value+"%");
+if (error) {alert("ERROR");} else {
+
+tiitlid.innerHTML = "";
+
+data.forEach(artikkel => { tiitlid.innerHTML += `<a href="#${artikkel.tiitel}">${artikkel.tiitel}</a><br>` })}};
+
+otsing.onblur = async () => {await oota(1000); tiitlid.innerHTML = ""};
+
+window.addEventListener("hashchange", function () {
+    leht()
+});
+
+leht()
+</script>
+
+</body></html>
